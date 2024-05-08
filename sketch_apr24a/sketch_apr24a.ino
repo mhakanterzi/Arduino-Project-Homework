@@ -4,6 +4,8 @@
 #define SCL_PIN 8
 #define SDO_PIN 9
 #define SERVO_PIN 10
+#define LEDSARI 2
+#define LEDMAVI 3
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Servo myServo;
@@ -103,12 +105,16 @@ void loop() {
           lcd.setCursor(3, 1);
           lcd.print("FENERBAHCE");
           delay(500);
+          digitalWrite(LEDSARI,1);
+          digitalWrite(LEDMAVI,1);
               for (int thisNote = 0; thisNote < sizeof(melody) / sizeof(int); thisNote++)
                {    
                 tone(11, melody[thisNote], noteDurations[thisNote] * .7);    
                 delay(noteDurations[thisNote]);    
                 noTone(11);
                }
+          digitalWrite(LEDSARI,0);
+          digitalWrite(LEDMAVI,0);
         }
         else {
           lcd.clear();
