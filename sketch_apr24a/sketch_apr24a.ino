@@ -4,6 +4,7 @@
 #define SCL_PIN 8
 #define SDO_PIN 9
 #define SERVO_PIN 10
+#define BUZZER_PIN 11 
 #define LEDSARI 2
 #define LEDMAVI 3
 
@@ -26,19 +27,15 @@ void setup() {
   Serial.begin(9600);
   pinMode(SCL_PIN, OUTPUT);
   pinMode(SDO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT); // Buzzer pini çıkış olarak ayarlanır
 
   lcd.begin();
   lcd.clear();
   lcd.print("Sifreyi Girin");
 
-  myServo.attach(SERVO_PIN); // Servo'yu 10 numaralı pine bağla
+  myServo.attach(SERVO_PIN); // Servo pini atanır
 
- //   for (int thisNote = 0; thisNote < sizeof(melody) / sizeof(int); thisNote++)
- // {    
- //   tone(11, melody[thisNote], noteDurations[thisNote] * .7);    
- //   delay(noteDurations[thisNote]);    
-//    noTone(11);
-//  }
+  // Melodi çalma kısmı
 }
 
 void loop() {
@@ -47,13 +44,17 @@ void loop() {
   if (button) {
     Serial.println(button);
 
-    if (button == 16) { // 16 "geri silme" anlamına gelir
+    // Her tuşa basıldığında buzzer'ı çal
+    tone(BUZZER_PIN, 1000, 100); // Frekans 1000 Hz, süre 100 ms
+    delay(100); // Buzzer'ı 100 ms çal
+
+    if (button == 16) {
       if (codeIndex > 0) {
-        codeIndex--; // Şifreyi bir adım geri al
+        codeIndex--;
         lcd.setCursor(codeIndex, 1);
-        lcd.print(" "); // Ekrandaki karakteri sil
+        lcd.print(" ");
       }
-    } else if (button >= 10 && button <= 15) { // 11-15 semboller
+    } else if (button >= 10 && button <= 15) {
       lcd.setCursor(codeIndex, 1);
 
       switch (button) {
@@ -77,83 +78,81 @@ void loop() {
           break;
       }
 
-      enteredCode[codeIndex] = 0; // Sembol olduğunda şifreye eklenmez
-      codeIndex++; // Sonraki pozisyona geç
+      enteredCode[codeIndex] = 0;
+      codeIndex++;
     } else {
-      enteredCode[codeIndex] = button; // Basılan sayıyı şifreye ekle
-      codeIndex++; // Şifredeki sonraki pozisyona geç
+      enteredCode[codeIndex] = button;
+      codeIndex++;
 
-      // LCD ekranda girilen tuşları göster
       lcd.setCursor(codeIndex - 1, 1);
       lcd.print(button);
 
-      if (codeIndex == 4) { // 4 haneli şifre dolduğunda
-      delay(500);
-        if (checkCode()) { // Doğru şifre kontrolü
+      if (codeIndex == 4) {
+        delay(500);
+        if (checkCode()) {
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print("Dogru Sifre!");
-          
-          myServo.write(90); // Servo'yu 90 dereceye getir
-          delay(3000); // 2 saniye bekle
-          myServo.write(0); // Servo'yu geri getir
-        } 
-        else if (checkfenerCode()) {
+
+          myServo.write(90);
+          delay(3000);
+          myServo.write(0);
+        } else if (checkfenerCode()) {
           lcd.clear();
           lcd.setCursor(4, 0);
           lcd.print("EN BUYUK");
           lcd.setCursor(3, 1);
           lcd.print("FENERBAHCE");
           delay(500);
-          digitalWrite(LEDSARI,1);
-          digitalWrite(LEDMAVI,1);
-              for (int thisNote = 0; thisNote < sizeof(melody) / sizeof(int); thisNote++)
-               {    
-                tone(11, melody[thisNote], noteDurations[thisNote] * .7);    
-                delay(noteDurations[thisNote]);    
-                noTone(11);
-               }
-          digitalWrite(LEDSARI,0);
-          digitalWrite(LEDMAVI,0);
-        }
-        else {
+          digitalWrite(LEDSARI, 1);
+          digitalWrite(LEDMAVI, 1);
+          for (int thisNote = 0; thisNote < sizeof(melody) / sizeof(int); thisNote++) {
+            tone(BUZZER_PIN, melody[thisNote], noteDurations[thisNote] * .7);
+            delay(noteDurations[thisNote]);
+            noTone(BUZZER_PIN);
+          }
+          digitalWrite(LEDSARI, 0);
+          digitalWrite(LEDMAVI, 0);
+        } else {
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print("Yanlis Sifre!");
+          // Yanlış şifre durumunda buzzer'ı çal
+          tone(BUZZER_PIN, 1000, 1000); // Frekans 1000 Hz, süre 1000 ms
           delay(2000);
+          noTone(BUZZER_PIN); // Buzzer'ı kapat
         }
 
-        // Şifreyi sıfırla
         codeIndex = 0;
         lcd.setCursor(0, 1);
-        lcd.print("                "); // Alt satırı temizle
+        lcd.print("                ");
         lcd.setCursor(0, 0);
         lcd.print("Sifreyi Girin");
       }
     }
 
-    delay(500); // Hatalı algılamayı önlemek için kısa gecikme
+    delay(500);
   }
 
-  delay(100); // Döngü gecikmesi
+  delay(100);
 }
 
-bool checkCode() { // Girilen şifreyi doğru şifreyle karşılaştır
+bool checkCode() {
   for (int i = 0; i < 4; i++) {
     if (enteredCode[i] != correctCode[i]) {
-      return false; // Yanlış şifre
+      return false;
     }
   }
-  return true; // Doğru şifre
+  return true;
 }
 
-bool checkfenerCode() { // Girilen şifreyi doğru şifreyle karşılaştır
+bool checkfenerCode() {
   for (int i = 0; i < 4; i++) {
     if (enteredCode[i] != fenerCode[i]) {
-      return false; // Yanlış şifre
+      return false;
     }
   }
-  return true; // Doğru şifre
+  return true;
 }
 
 byte readbutton() {
@@ -164,7 +163,7 @@ byte readbutton() {
     digitalWrite(SCL_PIN, LOW);
 
     if (!digitalRead(SDO_PIN)) {
-      buttondurum = number; // Basılan tuş numarası
+      buttondurum = number;
     }
 
     digitalWrite(SCL_PIN, HIGH);
